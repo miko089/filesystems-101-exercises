@@ -102,7 +102,7 @@ void ps(void)
 
                 char exe_buf[PATH_MAX];
                 ssize_t len = readlink(exe_path, exe_buf, sizeof(exe_buf) - 1);
-                const char *exe_str;
+                const char *exe_str = "";
                 if (len < 0) {
                         report_error(exe_path, errno);
                 } else {
