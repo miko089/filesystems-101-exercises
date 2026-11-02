@@ -89,22 +89,20 @@ static int hello_read(const char *path, char *buf, size_t size, off_t offset,
   return size;
 }
 
-static int hello_write(const char *path, const char *buf, size_t size,
-                       off_t offset, struct fuse_file_info *fi) {
-  (void)path;
-  (void)buf;
-  (void)size;
-  (void)offset;
-  (void)fi;
-  return -EROFS;
-}
+static int hello_erofs(void) { return -EROFS; }
 
 static const struct fuse_operations hellofs_ops = {
     .getattr = hello_getattr,
     .readdir = hello_readdir,
     .open = hello_open,
     .read = hello_read,
-    .write = hello_write,
+    .write = (void *)hello_erofs,
+    .create = (void *)hello_erofs,
+    .mknod = (void *)hello_erofs,
+    .mkdir = (void *)hello_erofs,
+    .unlink = (void *)hello_erofs,
+    .rmdir = (void *)hello_erofs,
+    .truncate = (void *)hello_erofs,
 };
 
 int helloworld(const char *mntp) {
