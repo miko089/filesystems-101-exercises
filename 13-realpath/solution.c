@@ -2,7 +2,7 @@
 
 #include <stdio.h>      // snprintf(), NULL
 #include <stdbool.h>    // bool, true, false
-#include <string.h>     // strlen(), strcmp(), strchr(), strrchr(), strcpy(), memcpy()
+#include <string.h>     // strlen(), strcmp(), strchr(), strrchr(), memcpy()
 #include <errno.h>      // errno, ENOENT, ENOTDIR, ELOOP, ENAMETOOLONG
 #include <unistd.h>     // readlink(), ssize_t
 #include <sys/stat.h>   // struct stat, lstat(), S_ISLNK(), S_ISDIR()
@@ -19,11 +19,13 @@ void abspath(const char *path)
 
 	char resolved[PATH_MAX] = "/";
 	char left[PATH_MAX * 2];
-	if (strlen(path) >= sizeof(left)) {
+
+	size_t path_len = strlen(path);
+	if (path_len >= sizeof(left)) {
 		report_error("/", "", ENAMETOOLONG);
 		return;
 	}
-	strcpy(left, path);
+	memcpy(left, path, path_len + 1);
 
 	char *cur = left;
 	int symlinks = 0;
@@ -92,18 +94,21 @@ void abspath(const char *path)
 			}
 			target[len] = '\0';
 
-			if (target[0] == '/')
-				strcpy(resolved, "/");
+			if (target[0] == '/') {
+				resolved[0] = '/';
+				resolved[1] = '\0';
+			}
 
 			char new_left[PATH_MAX * 2];
 			bool need_slash = (*cur && target[len - 1] != '/' && *cur != '/');
-			if (snprintf(new_left, sizeof(new_left), "%s%s%s",
-				     target, need_slash ? "/" : "", cur) >= (int)sizeof(new_left)) {
+			int nlen = snprintf(new_left, sizeof(new_left), "%s%s%s",
+					    target, need_slash ? "/" : "", cur);
+			if (nlen < 0 || (size_t)nlen >= sizeof(new_left) || (size_t)nlen >= sizeof(left)) {
 				report_error(resolved, comp, ENAMETOOLONG);
 				return;
 			}
 
-			strcpy(left, new_left);
+			memcpy(left, new_left, (size_t)nlen + 1);
 			cur = left;
 			continue;
 		}
