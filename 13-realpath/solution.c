@@ -89,11 +89,12 @@ void abspath(const char *path)
                 if (!*cur) {
                         char resolved[PATH_MAX];
                         if (!build_parent_path(stack, top, resolved, sizeof(resolved))) {
+                                cleanup_stack(stack, top);
                                 report_error("/", "", ENAMETOOLONG);
                         } else {
+                                cleanup_stack(stack, top);
                                 report_path(resolved);
                         }
-                        cleanup_stack(stack, top);
                         return;
                 }
 
@@ -102,8 +103,8 @@ void abspath(const char *path)
                 if (clen > NAME_MAX) {
                         char parent[PATH_MAX];
                         build_parent_path(stack, top, parent, sizeof(parent));
-                        report_error(parent, "", ENAMETOOLONG);
                         cleanup_stack(stack, top);
+                        report_error(parent, "", ENAMETOOLONG);
                         return;
                 }
 
@@ -139,8 +140,8 @@ void abspath(const char *path)
                 if (child_fd < 0) {
                         char parent[PATH_MAX];
                         build_parent_path(stack, top, parent, sizeof(parent));
-                        report_error(parent, comp, errno);
                         cleanup_stack(stack, top);
+                        report_error(parent, comp, errno);
                         return;
                 }
 
@@ -148,9 +149,9 @@ void abspath(const char *path)
                 if (fstat(child_fd, &st) < 0) {
                         char parent[PATH_MAX];
                         build_parent_path(stack, top, parent, sizeof(parent));
-                        report_error(parent, comp, errno);
                         close(child_fd);
                         cleanup_stack(stack, top);
+                        report_error(parent, comp, errno);
                         return;
                 }
 
@@ -159,8 +160,8 @@ void abspath(const char *path)
                         if (++symlink_count > MAX_SYMLINKS) {
                                 char parent[PATH_MAX];
                                 build_parent_path(stack, top, parent, sizeof(parent));
-                                report_error(parent, comp, ELOOP);
                                 cleanup_stack(stack, top);
+                                report_error(parent, comp, ELOOP);
                                 return;
                         }
 
@@ -169,8 +170,8 @@ void abspath(const char *path)
                         if (tlen < 0) {
                                 char parent[PATH_MAX];
                                 build_parent_path(stack, top, parent, sizeof(parent));
-                                report_error(parent, comp, errno);
                                 cleanup_stack(stack, top);
+                                report_error(parent, comp, errno);
                                 return;
                         }
                         target[tlen] = '\0';
@@ -189,8 +190,8 @@ void abspath(const char *path)
                         if (nlen < 0 || (size_t)nlen >= sizeof(new_left) || (size_t)nlen >= sizeof(left)) {
                                 char parent[PATH_MAX];
                                 build_parent_path(stack, top, parent, sizeof(parent));
-                                report_error(parent, comp, ENAMETOOLONG);
                                 cleanup_stack(stack, top);
+                                report_error(parent, comp, ENAMETOOLONG);
                                 return;
                         }
 
@@ -203,9 +204,9 @@ void abspath(const char *path)
                         if (top + 1 >= MAX_DEPTH) {
                                 char parent[PATH_MAX];
                                 build_parent_path(stack, top, parent, sizeof(parent));
-                                report_error(parent, comp, ENAMETOOLONG);
                                 close(child_fd);
                                 cleanup_stack(stack, top);
+                                report_error(parent, comp, ENAMETOOLONG);
                                 return;
                         }
                         top++;
@@ -218,9 +219,9 @@ void abspath(const char *path)
                 if (slash != NULL || has_next) {
                         char parent[PATH_MAX];
                         build_parent_path(stack, top, parent, sizeof(parent));
-                        report_error(parent, comp, ENOTDIR);
                         close(child_fd);
                         cleanup_stack(stack, top);
+                        report_error(parent, comp, ENOTDIR);
                         return;
                 }
 
@@ -233,14 +234,15 @@ void abspath(const char *path)
                         snprintf(result, sizeof(result), "%s%s", parent, comp);
                 }
 
+                close(child_fd);
+                cleanup_stack(stack, top);
+
                 if (strlen(result) >= PATH_MAX) {
                         report_error(parent, comp, ENAMETOOLONG);
                 } else {
                         report_path(result);
                 }
 
-                close(child_fd);
-                cleanup_stack(stack, top);
                 return;
         }
 }
